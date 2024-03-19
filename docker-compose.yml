@@ -1,0 +1,72 @@
+# Configura a versão do compose
+version: '3.9'
+
+# Em services definiremos nossos containers
+services:
+
+  # App é nosso primeiro container que contém o Apache e o PHP confiugrado no Dockerfile
+  app:
+    container_name: docker-lamp
+    build: .
+    # Porta exposta para o Apache
+    ports:
+      - "80:80"
+    # Facilitando as configurações os volumes são os alias de pastas e arquvivos do Apache e PHP para pasta do docker-compose   
+    volumes:
+      - ./src:/var/www/html/src
+      - ./config/php.ini:/etc/php/8.1/apache2/php.ini
+      - ./config/000-default.conf:/etc/apache2/sites-available/000-default.conf
+      - ./config/apache2.conf:/etc/apache2/apache2.conf
+      - ./logs/apache2:/var/log/apache2
+    # Configuração do uso de recursos da virtualização
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 12G 
+
+  # mysql é nosso segundo container que contém a imagem oficial do Mysql
+  mysql:
+    # Imagem do MySQL do Docker Hub
+    image: mysql:latest
+    container_name: mysql
+    # Configurações de acesso e db do mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: 'senha-root'
+      MYSQL_DATABASE: banco-de-dados
+      MYSQL_USER: user
+      MYSQL_PASSWORD: 'user-senha'
+    restart: always
+    command: --default-authentication-plugin=mysql_native_password
+    # Porta exposta para o MySQL
+    ports:
+      - "3306:3306"
+    # Facilitando as configurações os volumes são os alias de pastas e arquvivos do MySQL para pasta do docker-compose   
+    volumes:
+      - ./config/my.cnf:/etc/mysql/conf.d/my.cnf
+      - ./database:/var/lib/mysql
+      - ./logs/mysql:/var/log/mysql
+    # Configuração do uso de recursos da virtualização
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 12G
+
+  # phpmyadmin é nosso terceiro container que contém a imagem oficial do phpmyadmin
+  phpmyadmin:
+    # Imagem do phpMyAdmin do Docker Hub
+    image: phpmyadmin:latest
+    container_name: phpmyadmin
+    # Configurações de link do banco de dados com o phpMyAdmin
+    links:
+      - mysql
+    environment:
+      PMA_HOST: mysql
+      PMA_PORT: 3306
+      PMA_ARBITRARY: 1
+      UPLOAD_LIMIT: 300M
+    restart: always
+    # Porta exposta para o uso phpMyAdmin
+    ports:
+      - 8080:80
